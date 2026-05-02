@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#15110d">
+  <title>BarBuddy — Cocktail-Rezept öffnen</title>
+
+  <!-- Universal Link / iOS smart-app-banner — opens BarBuddy if installed.
+       Replace 0000000000 with your real App Store ID once published. -->
+  <meta name="apple-itunes-app" content="app-id=0000000000">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #15110d;
+      --bg-raised: #1f1a14;
+      --surface: #2a231b;
+      --surface-hi: #352c22;
+      --line: rgba(255, 240, 210, 0.08);
+      --text: #f5ecdc;
+      --text-dim: rgba(245, 236, 220, 0.65);
+      --text-faint: rgba(245, 236, 220, 0.4);
+      --accent: #c9a25b;
+      --on-accent: #15110d;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      letter-spacing: -0.005em;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    .serif {
+      font-family: 'Fraunces', Georgia, serif;
+      letter-spacing: -0.015em;
+    }
+    .wrap {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+    h1 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 36px;
+      font-weight: 600;
+      line-height: 1.05;
+      margin: 4px 0 0;
+      letter-spacing: -0.025em;
+    }
+    p { margin: 0; line-height: 1.55; color: var(--text-dim); font-size: 15px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 22px;
+    }
+    .qr-card {
+      background: white;
+      border-radius: 18px;
+      padding: 18px;
+      display: flex;
+      justify-content: center;
+    }
+    .qr-card img {
+      max-width: 100%;
+      width: 240px;
+      height: 240px;
+      display: block;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 18px;
+      border-radius: 14px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 14px;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      letter-spacing: 0;
+      transition: filter 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--on-accent);
+      border-color: var(--accent);
+    }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+    }
+    .btn:hover { filter: brightness(1.08); }
+    .row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .footer {
+      margin-top: 8px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-faint);
+    }
+    .hidden { display: none !important; }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-block;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div>
+      <span class="label"><span class="badge-dot"></span>BarBuddy Rezept</span>
+      <h1 id="title">Cocktail erhalten</h1>
+    </div>
+
+    <div id="success" class="card hidden">
+      <p>BarBuddy sollte sich gleich öffnen.<br>Falls nichts passiert, tippe auf den Button unten.</p>
+    </div>
+
+    <div id="install" class="card hidden">
+      <p>BarBuddy ist auf deinem Gerät noch nicht installiert.<br>Lade die App, dann öffnet sich dieses Rezept automatisch.</p>
+    </div>
+
+    <div class="row">
+      <a id="open-app" class="btn btn-primary" href="#">📥 Im BarBuddy öffnen</a>
+      <a id="appstore" class="btn btn-secondary" href="#" target="_blank" rel="noopener">📲 BarBuddy aus dem App Store</a>
+    </div>
+
+    <div>
+      <p style="margin-bottom: 12px; color: var(--text-dim); font-size: 13px;">
+        Oder scanne den QR-Code mit der BarBuddy-App auf einem anderen Gerät:
+      </p>
+      <div class="qr-card">
+        <img id="qr" alt="QR-Code für BarBuddy" loading="lazy">
+      </div>
+    </div>
+
+    <div class="footer">
+      Der Link enthält das Rezept selbst — es wird nichts an einen Server geschickt.
+    </div>
+  </main>
+
+  <script>
+    // ─── Configuration ────────────────────────────────────────────────
+    // The App Store ID once published. Until then, the install button
+    // links to a placeholder.
+    const APP_STORE_URL = 'https://apps.apple.com/de/app/barbuddy/id0';
+    const QR_API = 'https://api.qrserver.com/v1/create-qr-code/?size=480x480&format=png&qzone=2&data=';
+
+    // ─── Extract the encoded payload from URL ─────────────────────────
+    // Two formats supported: fragment "#r/<b64>" or query "?p=<b64>".
+    function extractPayload() {
+      const hash = location.hash || '';
+      if (hash.startsWith('#r/')) return hash.substring(3);
+      if (hash.startsWith('#')) return hash.substring(1); // bare b64 in fragment
+      const q = new URLSearchParams(location.search);
+      if (q.has('p')) return q.get('p');
+      if (q.has('r')) return q.get('r');
+      return null;
+    }
+
+    const payload = extractPayload();
+    const deepLink = payload ? `barbuddy://r/${payload}` : null;
+
+    // Wire up buttons + QR
+    const openBtn = document.getElementById('open-app');
+    const appstoreBtn = document.getElementById('appstore');
+    const qrImg = document.getElementById('qr');
+    const installCard = document.getElementById('install');
+    const successCard = document.getElementById('success');
+    const titleEl = document.getElementById('title');
+
+    appstoreBtn.href = APP_STORE_URL;
+
+    if (!payload) {
+      titleEl.textContent = 'Kein Rezept im Link';
+      openBtn.classList.add('hidden');
+      qrImg.parentElement.classList.add('hidden');
+    } else {
+      openBtn.href = deepLink;
+      qrImg.src = QR_API + encodeURIComponent(deepLink);
+
+      // Try to deep-link into the app immediately. If it works, the page
+      // unloads. If not (app not installed) we stay here and after a brief
+      // delay reveal the install hint.
+      const start = Date.now();
+      let deepLinkAttempted = false;
+
+      function tryDeepLink() {
+        if (deepLinkAttempted) return;
+        deepLinkAttempted = true;
+        // iOS: a hidden iframe with the custom scheme is the most reliable
+        // way to attempt the deep link without leaving an error page if the
+        // app is missing.
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = deepLink;
+        document.body.appendChild(iframe);
+        // Belt-and-suspenders: also assign window.location for browsers that
+        // ignore iframe custom schemes.
+        setTimeout(() => { window.location.href = deepLink; }, 100);
+      }
+
+      // Auto-attempt only when arriving fresh. If the user came back via
+      // browser back-button, don't auto-open again — just show buttons.
+      if (performance.getEntriesByType('navigation')[0]?.type === 'navigate') {
+        tryDeepLink();
+      }
+
+      // After a delay, if we're still here (app didn't take over), show the
+      // install card.
+      setTimeout(() => {
+        if (Date.now() - start < 3500) installCard.classList.remove('hidden');
+      }, 1800);
+
+      // Manual button click — same deep link attempt.
+      openBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        tryDeepLink();
+      });
+
+      // If the user backgrounds the tab (app likely opened), show success
+      // when they return.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && deepLinkAttempted) {
+          successCard.classList.remove('hidden');
+          installCard.classList.add('hidden');
+        }
+      });
+    }
+  </script>
+</body>
+</html>
