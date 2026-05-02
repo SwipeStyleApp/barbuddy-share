@@ -150,7 +150,8 @@
 
     <div class="row">
       <a id="open-app" class="btn btn-primary" href="#">BarBuddy öffnen</a>
-      <a id="appstore" class="btn btn-secondary" href="#" target="_blank" rel="noopener">BarBuddy aus dem App Store</a>
+      <a id="appstore" class="btn btn-secondary hidden" href="#" target="_blank" rel="noopener">BarBuddy aus dem App Store</a>
+      <a id="playstore" class="btn btn-secondary hidden" href="#" target="_blank" rel="noopener">BarBuddy aus dem Play Store</a>
     </div>
 
     <div>
@@ -169,37 +170,59 @@
 
   <script>
     // ─── Configuration ────────────────────────────────────────────────
-    // The App Store ID once published. Until then, the install button
-    // links to a placeholder.
     const APP_STORE_URL = 'https://apps.apple.com/de/app/barbuddy/id6743417367';
+    const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=de.davidhetzner.cocktailapp&hl=de';
     const QR_API = 'https://api.qrserver.com/v1/create-qr-code/?size=480x480&format=png&qzone=2&data=';
 
     // ─── Extract the encoded payload from URL ─────────────────────────
-    // Two formats supported: fragment "#r/<b64>" or query "?p=<b64>".
+    // Three formats supported:
+    //   #r/<b64>  → single cocktail (whole recipe inline)
+    //   #c/<b64>  → collection link (b64 = encoded storage URL)
+    //   #<b64>    → bare b64 fragment, treated as single cocktail
     function extractPayload() {
       const hash = location.hash || '';
-      if (hash.startsWith('#r/')) return hash.substring(3);
-      if (hash.startsWith('#')) return hash.substring(1); // bare b64 in fragment
+      if (hash.startsWith('#r/')) return { kind: 'r', payload: hash.substring(3) };
+      if (hash.startsWith('#c/')) return { kind: 'c', payload: hash.substring(3) };
+      if (hash.startsWith('#')) return { kind: 'r', payload: hash.substring(1) };
       const q = new URLSearchParams(location.search);
-      if (q.has('p')) return q.get('p');
-      if (q.has('r')) return q.get('r');
+      if (q.has('p')) return { kind: 'r', payload: q.get('p') };
+      if (q.has('r')) return { kind: 'r', payload: q.get('r') };
+      if (q.has('c')) return { kind: 'c', payload: q.get('c') };
       return null;
     }
 
-    const payload = extractPayload();
-    const deepLink = payload ? `barbuddy://r/${payload}` : null;
-
-    // Wire up buttons + QR
+    // Wire up DOM refs
     const openBtn = document.getElementById('open-app');
     const appstoreBtn = document.getElementById('appstore');
+    const playstoreBtn = document.getElementById('playstore');
     const qrImg = document.getElementById('qr');
     const installCard = document.getElementById('install');
     const successCard = document.getElementById('success');
     const titleEl = document.getElementById('title');
 
+    // Show the right store(s) for the visitor's device. Desktop / other →
+    // both, so the user can hand-off to a phone.
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/.test(ua);
     appstoreBtn.href = APP_STORE_URL;
+    playstoreBtn.href = PLAY_STORE_URL;
+    if (isIOS) {
+      appstoreBtn.classList.remove('hidden');
+    } else if (isAndroid) {
+      playstoreBtn.classList.remove('hidden');
+    } else {
+      appstoreBtn.classList.remove('hidden');
+      playstoreBtn.classList.remove('hidden');
+    }
 
-    if (!payload) {
+    const parsed = extractPayload();
+    const deepLink = parsed ? `barbuddy://${parsed.kind}/${parsed.payload}` : null;
+    if (parsed && parsed.kind === 'c') {
+      titleEl.textContent = 'Cocktail-Sammlung erhalten';
+    }
+
+    if (!parsed) {
       titleEl.textContent = 'Kein Rezept im Link';
       openBtn.classList.add('hidden');
       qrImg.parentElement.classList.add('hidden');
